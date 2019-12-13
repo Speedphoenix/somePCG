@@ -35,9 +35,30 @@ extern int WINDOW_WIDTH;
 extern float AIM_FILL;
 extern float AIM_WALK_HEIGHT;
 extern float AIM_MAX_HEIGHT;
+extern double VARY_AMOUNT;
 
 extern ALLEGRO_DISPLAY *currentDisplay;
 extern ALLEGRO_COLOR TREECOL;
+
+const double STACK_CHANCE = 0.2;
+
+const double CLOSE_EARLY_CHANCE = 0.3;
+const double NEW_SYMBOL_CHANCE = 0.03;
+const double ST_NEW_SYMBOL_CHANCE = 0.08;
+const unsigned MAX_SYMBOLS = 40;
+
+const unsigned ST_MAX_AXIOMLEN = 10;
+const unsigned ST_MIN_AXIOMLEN = 1;
+const unsigned ST_MAX_GRAMMS = 1;
+const unsigned ST_MIN_GRAMMS = 1;
+const double ST_MAX_WALKLEN = 20;
+const double ST_MIN_WALKLEN = 1;
+const double ST_MAX_WALKVAR = ST_MAX_WALKLEN / 4;
+const double ST_MIN_WALKVAR = 0;
+const double ST_MAX_ANGLE = M_PI;
+const double ST_MIN_ANGLE = M_PI / 20;
+const double ST_MAX_ANGLEVAR = ST_MAX_ANGLE / 10;
+const double ST_MIN_ANGLEVAR = 0;
 
 inline double mod2PI(double orientation)
 {
@@ -50,21 +71,36 @@ inline double mod2PI(double orientation)
 }
 
 // may change this to a gauss or something
-inline double randOffset(double limit)
+template<typename T>
+inline T randOffset(T limit, T lowest = 0.0)
 {
-	return (((double)rand() / RAND_MAX) * limit);
+	if (limit <= lowest)
+		return ((T)0);
+	return ((((T)rand() / RAND_MAX) * (limit - lowest)) + lowest);
 }
 
-enum Command
+template<>
+inline int randOffset<int>(int limit, int lowest = 0)
 {
-	forwardDraw,
-	forwardNoDraw,
-	rightTurn,
-	leftTurn,
+	if (limit <= lowest)
+		return (0);
+	return (rand() % (limit - lowest) + lowest);
+}
+
+const unsigned RULEABLE_COMMANDS = 5;
+enum Command : unsigned
+{
+	forwardDraw = 0,
+	forwardNoDraw = 1,
+	rightTurn = 2,
+	leftTurn = 3,
+	nothing = 4,
 	stackCurr,
-	popCurr,
-	nothing
+	popCurr
 };
+
+const char STACKSTATE = '[';
+const char POPSTATE = ']';
 
 const std::map<char, Command> defaultCommands = 
 {
@@ -76,10 +112,17 @@ const std::map<char, Command> defaultCommands =
 	{']', popCurr}
 };
 
+const std::vector<char> defaultPossibleRules = {'F', 'f', '+', '-'};
+
 struct TurtleState
 {
 	double x, y;
 	double orientation;
+	TurtleState()
+	{ }
+	TurtleState(int _x, int _y, double _ori)
+		:x(_x), y(_y), orientation(_ori)
+	{ }
 };
 
 // turtle system, a turtle with a pencil attached to it's tail
@@ -92,24 +135,33 @@ class Lsystem
 		std::list<char> axiom;
 		std::map<char, std::list<char>> grammars;
 		std::map<char, Command> charToCmd;
-		ALLEGRO_BITMAP *currentResult;
-		double exceeding;
+		std::vector<char> possibleRules;
 		double walklength;
 		double walkvar;
 		double anglechange;
 		double anglevar;
 		float thickness;
 		TurtleState startState;
+		ALLEGRO_BITMAP *currentResult;
+		double fitness;
 
 		void forward(TurtleState& what);
 		void rotate(TurtleState& what, bool way);
 
+		void randomCmds(std::list<char>& dest, std::list<char>::iterator where,
+			int length)
+
 	public:
 		Lsystem();
 		virtual ~Lsystem();
+		Lsystem(const Lsystem& other);
+		Lsystem& operator=(const Lsystem& other);
 
 		void start();
 		void expand();
+		void randomize();
+		void makeVary(double varyAmount);
+
 		void draw();
 
 		void makeTest(int type = 0);

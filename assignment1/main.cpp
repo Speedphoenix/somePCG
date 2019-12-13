@@ -9,6 +9,7 @@ int WINDOW_WIDTH = 500;
 float AIM_FILL = 0.5;
 float AIM_WALK_HEIGHT = 75;
 float AIM_MAX_HEIGHT = 500;
+double VARY_AMOUNT = 10;
 
 void getParams(int argc, char **argv)
 {
@@ -51,7 +52,7 @@ int main(int argc, char **argv)
 	{
 		sys.makeTest(j);
 		sys.start();
-		for (int i = 1;i < 7;i++)
+		for (int i = 1;i < 8;i++)
 		{
 			sys.expand();
 			sys.draw();
